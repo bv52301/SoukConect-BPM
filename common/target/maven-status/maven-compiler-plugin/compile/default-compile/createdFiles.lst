@@ -1,0 +1,12 @@
+com\soukconect\bpm\common\dto\OrderWorkflowOutput.class
+com\soukconect\bpm\common\dto\OrderDto$PaymentMethod.class
+com\soukconect\bpm\common\workflow\OrderWorkflow.class
+com\soukconect\bpm\common\dto\OrderWorkflowInput.class
+com\soukconect\bpm\common\dto\OrderDto$Status.class
+com\soukconect\bpm\common\dto\OrderItemDto.class
+com\soukconect\bpm\common\dto\OrderWorkflowInput$TimeSlot.class
+com\soukconect\bpm\common\dto\TimelineEvent.class
+com\soukconect\bpm\common\dto\OrderDto.class
+com\soukconect\bpm\common\activity\OrderActivities.class
+com\soukconect\bpm\common\dto\PaymentResult.class
+com\soukconect\bpm\common\dto\OrderWorkflowInput$DeliveryAddress.class

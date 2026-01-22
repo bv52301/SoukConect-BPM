@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: general-worker
+
+server:
+  port: 8091
+
+# Temporal configuration
+temporal:
+  server:
+    address: localhost:7233
+
+# Service URLs
+services:
+  vendor:
+    url: http://localhost:8083
+  customer:
+    url: http://localhost:8084
+  payment:
+    url: http://localhost:8085
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.soukconect.bpm: DEBUG
+    io.temporal: INFO

@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: order-worker
+
+server:
+  port: 8090
+
+# Temporal configuration
+temporal:
+  server:
+    address: localhost:7233
+
+# Service URLs (your existing microservices)
+services:
+  order:
+    url: http://localhost:8081
+  product:
+    url: http://localhost:8082
+  vendor:
+    url: http://localhost:8083
+  customer:
+    url: http://localhost:8084
+  payment:
+    url: http://localhost:8085
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.soukconect.bpm: DEBUG
+    io.temporal: INFO
+
+# Activity timeout and retry configuration
+workflow:
+  activities:
+    standard:
+      timeout-seconds: 30
+      max-attempts: 3
+    payment:
+      timeout-seconds: 60
+      max-attempts: 3
+    tracking:
+      timeout-seconds: 300  # 5 minutes
+      max-attempts: 3
+    notification:
+      timeout-seconds: 30
+      max-attempts: 5
+  timeouts:
+    vendor-confirmation-minutes: 15
+    delivery-completion-hours: 4

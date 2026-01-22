@@ -1,0 +1,10 @@
+C:\work\Soukconect-BPM\order-worker\src\main\java\com\soukconect\bpm\order\client\ProductServiceClient.java
+C:\work\Soukconect-BPM\order-worker\src\main\java\com\soukconect\bpm\order\client\CustomerServiceClient.java
+C:\work\Soukconect-BPM\order-worker\src\main\java\com\soukconect\bpm\order\client\OrderServiceClient.java
+C:\work\Soukconect-BPM\order-worker\src\main\java\com\soukconect\bpm\order\OrderWorkerApplication.java
+C:\work\Soukconect-BPM\order-worker\src\main\java\com\soukconect\bpm\order\api\WorkflowController.java
+C:\work\Soukconect-BPM\order-worker\src\main\java\com\soukconect\bpm\order\config\ActivityConfig.java
+C:\work\Soukconect-BPM\order-worker\src\main\java\com\soukconect\bpm\order\workflow\OrderWorkflowImpl.java
+C:\work\Soukconect-BPM\order-worker\src\main\java\com\soukconect\bpm\order\activity\OrderActivitiesImpl.java
+C:\work\Soukconect-BPM\order-worker\src\main\java\com\soukconect\bpm\order\client\PaymentGatewayClient.java
+C:\work\Soukconect-BPM\order-worker\src\main\java\com\soukconect\bpm\order\client\VendorServiceClient.java
