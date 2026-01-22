@@ -1,0 +1,45 @@
+# Maven / Gradle build outputs
+*.class
+
+# Ignore packaged files
+*.jar
+*.war
+*.ear
+
+target/
+build/
+out/
+
+# Node projects (build-time artifacts)
+node_modules/
+web-admin/node_modules/
+web-admin/dist/
+web-admin/.vite/
+web-admin/.cache/
+web-admin/coverage/
+web-admin/*.tsbuildinfo
+*.tsbuildinfo
+
+# Node runtime installed by frontend-maven-plugin
+web-admin/node/
+
+# Environment files generated at build/deploy time
+web-admin/.env*
+
+# IDE-specific folders
+.idea/
+.vscode/
+*.iml
+
+# Ignore logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+#Ignore claude tempdirtories
+tmpclaude-*
+nul
