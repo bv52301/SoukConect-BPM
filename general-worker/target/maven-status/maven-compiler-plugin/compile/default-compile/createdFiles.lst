@@ -1,9 +1,0 @@
-com\soukconect\bpm\general\activity\VendorActivitiesImpl.class
-com\soukconect\bpm\general\workflow\NotificationWorkflowImpl.class
-com\soukconect\bpm\general\workflow\NotificationWorkflow.class
-com\soukconect\bpm\general\activity\NotificationActivitiesImpl.class
-com\soukconect\bpm\general\GeneralWorkerApplication.class
-com\soukconect\bpm\general\workflow\VendorPayoutWorkflow.class
-com\soukconect\bpm\general\activity\NotificationActivities.class
-com\soukconect\bpm\general\workflow\VendorPayoutWorkflowImpl.class
-com\soukconect\bpm\general\activity\VendorActivities.class

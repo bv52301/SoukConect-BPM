@@ -35,6 +35,7 @@ web-admin/.env*
 *.log
 *.tmp
 *.bak
+*.class
 
 # Ignore OS files
 .DS_Store
