@@ -34,11 +34,17 @@ public class OrderServiceClient {
     }
 
     public void updateStatus(Long orderId, String status) {
-        String url = baseUrl + "/orders/" + orderId;
-        log.debug("PUT {} status={}", url, status);
+        String url = baseUrl + "/orders/" + orderId + "/status";
+        log.debug("PATCH {} status={}", url, status);
 
-        // Using Map to send partial update
+        // Using Map to send status update
         Map<String, String> request = Map.of("status", status);
-        restTemplate.put(url, request);
+        restTemplate.patchForObject(url, request, Void.class);
+    }
+
+    public OrderDto createOrder(com.soukconect.bpm.common.dto.CreateOrderRequest request) {
+        String url = baseUrl + "/orders";
+        log.debug("POST {}", url);
+        return restTemplate.postForObject(url, request, OrderDto.class);
     }
 }

@@ -62,14 +62,4 @@ public class OrderWorkerApplication implements CommandLineRunner {
         log.info("Order Worker started, listening on task queue: {}", OrderWorkflow.TASK_QUEUE);
     }
 
-    @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
-    }
-
-    @Bean
-    public WorkflowClient workflowClient() {
-        WorkflowServiceStubs serviceStubs = WorkflowServiceStubs.newLocalServiceStubs();
-        return WorkflowClient.newInstance(serviceStubs);
-    }
 }

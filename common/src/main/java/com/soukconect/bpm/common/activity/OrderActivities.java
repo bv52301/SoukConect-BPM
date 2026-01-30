@@ -1,5 +1,6 @@
 package com.soukconect.bpm.common.activity;
 
+import com.soukconect.bpm.common.dto.CreateOrderRequest;
 import com.soukconect.bpm.common.dto.OrderWorkflowInput;
 import com.soukconect.bpm.common.dto.PaymentResult;
 import io.temporal.activity.ActivityInterface;
@@ -11,6 +12,9 @@ import io.temporal.activity.ActivityMethod;
 @ActivityInterface
 public interface OrderActivities {
 
+    @ActivityMethod
+    Long createOrder(CreateOrderRequest request);
+
     // ============== VALIDATION ==============
 
     /**
@@ -18,7 +22,7 @@ public interface OrderActivities {
      * Timeout: 30s, Retry: 3x
      */
     @ActivityMethod
-    void validateOrder(OrderWorkflowInput input);
+    void validateOrder(Long orderId);
 
     // ============== PAYMENT ==============
 

@@ -1,5 +1,6 @@
 package com.soukconect.bpm.common.workflow;
 
+import com.soukconect.bpm.common.dto.CreateOrderRequest;
 import com.soukconect.bpm.common.dto.OrderWorkflowInput;
 import com.soukconect.bpm.common.dto.OrderWorkflowOutput;
 import com.soukconect.bpm.common.dto.TimelineEvent;
@@ -12,7 +13,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * OrderWorkflow orchestrates the complete order lifecycle from placement to delivery.
+ * OrderWorkflow orchestrates the complete order lifecycle from placement to
+ * delivery.
  *
  * State Machine:
  * CREATED → VALIDATING → PAYMENT_PROCESSING → INVENTORY_RESERVED →
@@ -33,7 +35,7 @@ public interface OrderWorkflow {
      * @return The workflow output with final status
      */
     @WorkflowMethod
-    OrderWorkflowOutput processOrder(OrderWorkflowInput input);
+    OrderWorkflowOutput processOrder(CreateOrderRequest input);
 
     // ============== SIGNALS ==============
 

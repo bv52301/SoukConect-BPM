@@ -35,13 +35,14 @@ public class WorkflowController {
      * @return Workflow ID and order ID
      */
     @PostMapping("/start")
-    public ResponseEntity<Map<String, Object>> startOrderWorkflow(@RequestBody OrderWorkflowInput request) {
+    public ResponseEntity<Map<String, Object>> startOrderWorkflow(
+            @RequestBody com.soukconect.bpm.common.dto.CreateOrderRequest request) {
 
         log.info("Starting order workflow for customerId: {}", request.customerId());
 
         try {
             // Build workflow options
-            String workflowId = "order-" + System.currentTimeMillis();
+            String workflowId = "order-flow-" + System.currentTimeMillis();
             WorkflowOptions options = WorkflowOptions.newBuilder()
                     .setTaskQueue(OrderWorkflow.TASK_QUEUE)
                     .setWorkflowId(workflowId)
@@ -51,6 +52,9 @@ public class WorkflowController {
             OrderWorkflow workflow = workflowClient.newWorkflowStub(OrderWorkflow.class, options);
 
             // Start workflow asynchronously
+            // Workflow will create the order first and return the ID eventually if we
+            // query,
+            // but for async start we just get workflowId
             WorkflowClient.start(workflow::processOrder, request);
 
             log.info("Order workflow started: workflowId={}", workflowId);
@@ -58,7 +62,7 @@ public class WorkflowController {
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "workflowId", workflowId,
-                    "message", "Order workflow started successfully"));
+                    "message", "Order workflow started successfully (Creation in progress)"));
 
         } catch (Exception e) {
             log.error("Failed to start order workflow", e);

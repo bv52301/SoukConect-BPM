@@ -9,28 +9,29 @@ import java.util.List;
  * Input for OrderWorkflow - matches workflow-specifications.md
  */
 public record OrderWorkflowInput(
-        Long orderId,
-        Long customerId,
-        List<Long> vendorIds,
-        BigDecimal totalAmount,
-        String paymentMethod,
-        String paymentIntentId,
-        DeliveryAddress address,
-        LocalDate requestedDeliveryDate,
-        TimeSlot deliverySlot,
-        String notes
-) {
-    public record DeliveryAddress(
-            Long addressId,
-            String street,
-            String city,
-            String postal,
-            Double lat,
-            Double lng
-    ) {}
+                Long orderId,
+                Long customerId,
+                List<Long> vendorIds,
+                BigDecimal totalAmount,
+                String paymentMethod,
+                String paymentIntentId,
+                String paymentGateway,
+                String paymentToken,
+                DeliveryAddress address,
+                LocalDate requestedDeliveryDate,
+                TimeSlot deliverySlot,
+                String notes) {
+        public record DeliveryAddress(
+                        Long addressId,
+                        String street,
+                        String city,
+                        String postal,
+                        Double lat,
+                        Double lng) {
+        }
 
-    public record TimeSlot(
-            LocalTime start,
-            LocalTime end
-    ) {}
+        public record TimeSlot(
+                        LocalTime start,
+                        LocalTime end) {
+        }
 }

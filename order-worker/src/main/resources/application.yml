@@ -13,15 +13,15 @@ temporal:
 # Service URLs (your existing microservices)
 services:
   order:
-    url: http://localhost:8081
+    url: http://127.0.0.1:8081
   product:
-    url: http://localhost:8082
+    url: http://127.0.0.1:8082
   vendor:
-    url: http://localhost:8083
+    url: http://127.0.0.1:8083
   customer:
-    url: http://localhost:8084
+    url: http://127.0.0.1:8084
   payment:
-    url: http://localhost:8085
+    url: http://127.0.0.1:8085
 
 # Logging
 logging:

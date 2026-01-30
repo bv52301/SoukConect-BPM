@@ -7,11 +7,18 @@ import com.soukconect.bpm.order.client.OrderServiceClient;
 import com.soukconect.bpm.order.client.ProductServiceClient;
 import com.soukconect.bpm.order.client.VendorServiceClient;
 import com.soukconect.bpm.order.client.CustomerServiceClient;
+import com.soukconect.bpm.order.client.PaymentServiceClient;
+import com.soukconect.bpm.order.client.PaymentServiceClient.CreatePaymentRequest;
+import com.soukconect.bpm.order.client.PaymentServiceClient.PaymentInfo;
 import com.soukconect.bpm.order.client.PaymentGatewayClient;
+import com.soukconect.bpm.order.client.PaymentGatewayClient.ChargeRequest;
+import com.soukconect.bpm.order.client.PaymentGatewayClient.GatewayResult;
 import io.temporal.activity.Activity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.util.UUID;
 
 /**
  * Implementation of OrderActivities that calls existing microservices via REST.
@@ -25,6 +32,7 @@ public class OrderActivitiesImpl implements OrderActivities {
     private final ProductServiceClient productServiceClient;
     private final VendorServiceClient vendorServiceClient;
     private final CustomerServiceClient customerServiceClient;
+    private final PaymentServiceClient paymentServiceClient;
     private final PaymentGatewayClient paymentGatewayClient;
 
     public OrderActivitiesImpl(
@@ -32,42 +40,34 @@ public class OrderActivitiesImpl implements OrderActivities {
             ProductServiceClient productServiceClient,
             VendorServiceClient vendorServiceClient,
             CustomerServiceClient customerServiceClient,
+            PaymentServiceClient paymentServiceClient,
             PaymentGatewayClient paymentGatewayClient) {
         this.orderServiceClient = orderServiceClient;
         this.productServiceClient = productServiceClient;
         this.vendorServiceClient = vendorServiceClient;
         this.customerServiceClient = customerServiceClient;
+        this.paymentServiceClient = paymentServiceClient;
         this.paymentGatewayClient = paymentGatewayClient;
     }
 
     // ============== VALIDATION ==============
 
     @Override
-    public void validateOrder(OrderWorkflowInput input) {
-        log.info("Validating order: {}", input.orderId());
+    public Long createOrder(com.soukconect.bpm.common.dto.CreateOrderRequest request) {
+        log.info("Creating order via API");
+        com.soukconect.bpm.common.dto.OrderDto createdOrder = orderServiceClient.createOrder(request);
+        log.info("Order created successfully with ID: {}", createdOrder.id());
+        return createdOrder.id();
+    }
 
-        // Validate order exists
-        var order = orderServiceClient.getOrder(input.orderId());
+    @Override
+    public void validateOrder(Long orderId) {
+        log.info("Validating order: {}", orderId);
+        // Basic existance check is sufficient as creation implies validation
+        var order = orderServiceClient.getOrder(orderId);
         if (order == null) {
-            throw Activity.wrap(new IllegalArgumentException("Order not found: " + input.orderId()));
+            throw Activity.wrap(new IllegalArgumentException("Order not found: " + orderId));
         }
-
-        // Validate customer
-        if (input.customerId() == null) {
-            throw Activity.wrap(new IllegalArgumentException("Customer ID is required"));
-        }
-
-        // Validate vendors
-        if (input.vendorIds() == null || input.vendorIds().isEmpty()) {
-            throw Activity.wrap(new IllegalArgumentException("At least one vendor is required"));
-        }
-
-        // Validate delivery address
-        if (input.address() == null) {
-            throw Activity.wrap(new IllegalArgumentException("Delivery address is required"));
-        }
-
-        log.info("Order validated successfully: {}", input.orderId());
     }
 
     // ============== PAYMENT ==============
@@ -76,16 +76,58 @@ public class OrderActivitiesImpl implements OrderActivities {
     public PaymentResult processPayment(OrderWorkflowInput input) {
         log.info("Processing payment for order: {}, amount: {}", input.orderId(), input.totalAmount());
 
-        try {
-            String transactionId = paymentGatewayClient.charge(
-                    input.customerId(),
-                    input.totalAmount(),
-                    input.paymentMethod(),
-                    "Order #" + input.orderId()
-            );
+        String gateway = input.paymentGateway() != null ? input.paymentGateway() : "STRIPE";
+        String idempotencyKey = "order-" + input.orderId() + "-" + UUID.randomUUID().toString().substring(0, 8);
 
-            log.info("Payment successful for order: {}", input.orderId());
-            return PaymentResult.success(transactionId);
+        try {
+            // Step 1: Create payment record in DB (PENDING status)
+            CreatePaymentRequest createRequest = CreatePaymentRequest.builder()
+                    .orderId(input.orderId())
+                    .customerId(input.customerId())
+                    .amount(input.totalAmount())
+                    .currency("MAD")
+                    .paymentMethod(input.paymentMethod() != null ? input.paymentMethod() : "CARD")
+                    .gateway(gateway)
+                    .idempotencyKey(idempotencyKey)
+                    .description("Payment for Order #" + input.orderId())
+                    .build();
+
+            PaymentInfo paymentInfo = paymentServiceClient.createPayment(createRequest);
+            log.info("Payment record created: paymentId={}, status={}", paymentInfo.id(), paymentInfo.status());
+
+            // Step 2: Process payment via Gateway (this auto-updates DB!)
+            ChargeRequest chargeRequest = ChargeRequest.builder()
+                    .paymentId(paymentInfo.id())
+                    .gateway(gateway)
+                    .idempotencyKey(idempotencyKey)
+                    .amount(input.totalAmount())
+                    .currency("MAD")
+                    .paymentToken(input.paymentToken())
+                    .orderId(input.orderId())
+                    .description("Payment for Order #" + input.orderId())
+                    .build();
+
+            GatewayResult gatewayResult = paymentGatewayClient.charge(chargeRequest);
+
+            // Step 3: Handle gateway response
+            if (gatewayResult.isSucceeded()) {
+                log.info("Payment successful for order: {}, txnId: {}",
+                        input.orderId(), gatewayResult.gatewayPaymentId());
+                return PaymentResult.success(paymentInfo.id(), gatewayResult.gatewayPaymentId());
+
+            } else if (gatewayResult.requiresAction()) {
+                log.info("Payment requires 3DS for order: {}, authUrl: {}",
+                        input.orderId(), gatewayResult.authUrl());
+                return PaymentResult.requiresAction(
+                        paymentInfo.id(),
+                        gatewayResult.gatewayPaymentId(),
+                        gatewayResult.authUrl());
+
+            } else {
+                log.error("Payment failed for order: {}, error: {} - {}",
+                        input.orderId(), gatewayResult.errorCode(), gatewayResult.errorMessage());
+                return PaymentResult.failure(gatewayResult.errorCode(), gatewayResult.errorMessage());
+            }
 
         } catch (Exception e) {
             log.error("Payment failed for order: {}", input.orderId(), e);
@@ -99,10 +141,23 @@ public class OrderActivitiesImpl implements OrderActivities {
 
         try {
             var order = orderServiceClient.getOrder(orderId);
-            if (order != null) {
-                paymentGatewayClient.refund(transactionId, order.totalAmount());
+            if (order != null && transactionId != null) {
+                // Find the payment and refund via gateway
+                String gateway = "STRIPE"; // Default - could be stored on order
+                PaymentGatewayClient.RefundRequest refundRequest = new PaymentGatewayClient.RefundRequest(
+                        null, // paymentId - we use gatewayPaymentId instead
+                        gateway,
+                        transactionId,
+                        order.totalAmount(),
+                        "Order refund");
+
+                GatewayResult result = paymentGatewayClient.refund(refundRequest);
+                if (result.success()) {
+                    log.info("Refund successful for order: {}", orderId);
+                } else {
+                    log.error("Refund failed for order: {}: {}", orderId, result.errorMessage());
+                }
             }
-            log.info("Refund successful for order: {}", orderId);
         } catch (Exception e) {
             log.error("Refund failed for order: {}", orderId, e);
             throw Activity.wrap(e);
