@@ -14,7 +14,7 @@ import java.util.Map;
  * Client for Payment Service DB operations.
  * Handles creating, updating, and querying payment records.
  * 
- * Base URL: http://localhost:8085/api/v1/payments
+ * Base URL: http://localhost:8085/v1/payments
  */
 @Component
 public class PaymentServiceClient {
@@ -41,7 +41,7 @@ public class PaymentServiceClient {
         log.info("Creating payment record: orderId={}, amount={}, method={}",
                 request.orderId(), request.amount(), request.paymentMethod());
 
-        String url = baseUrl + "/api/v1/payments";
+        String url = baseUrl + "/v1/payments";
 
         Map<String, Object> body = new HashMap<>();
         body.put("orderId", request.orderId());
@@ -92,7 +92,7 @@ public class PaymentServiceClient {
      */
     public PaymentInfo getPayment(Long paymentId) {
         log.debug("Getting payment: {}", paymentId);
-        String url = baseUrl + "/api/v1/payments/" + paymentId;
+        String url = baseUrl + "/v1/payments/" + paymentId;
 
         try {
             @SuppressWarnings("unchecked")
@@ -121,7 +121,7 @@ public class PaymentServiceClient {
     public void giveup(Long paymentId, String reason) {
         log.info("Giving up payment: paymentId={}, reason={}", paymentId, reason);
 
-        String url = baseUrl + "/api/v1/payments/" + paymentId + "/giveup";
+        String url = baseUrl + "/v1/payments/" + paymentId + "/giveup";
 
         Map<String, String> body = new HashMap<>();
         if (reason != null) {

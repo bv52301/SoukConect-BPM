@@ -15,7 +15,7 @@ import java.util.Map;
  * Calls the gateway endpoints which process payments via Stripe/CMI
  * and automatically update the DB with results.
  * 
- * Base URL: http://localhost:8085/api/v1/gateway
+ * Base URL: http://localhost:8085/api (then adds /v1/gateway/{gateway}/...)
  */
 @Component
 public class PaymentGatewayClient {
@@ -42,7 +42,7 @@ public class PaymentGatewayClient {
         log.info("Processing charge: paymentId={}, gateway={}, amount={}",
                 request.paymentId(), request.gateway(), request.amount());
 
-        String url = baseUrl + "/api/v1/gateway/" + request.gateway() + "/charge";
+        String url = baseUrl + "/v1/gateway/" + request.gateway() + "/charge";
 
         Map<String, Object> body = new HashMap<>();
         body.put("paymentId", request.paymentId());
@@ -78,7 +78,7 @@ public class PaymentGatewayClient {
         log.info("Processing refund: paymentId={}, gateway={}, amount={}",
                 request.paymentId(), request.gateway(), request.amount());
 
-        String url = baseUrl + "/api/v1/gateway/" + request.gateway() + "/refund";
+        String url = baseUrl + "/v1/gateway/" + request.gateway() + "/refund";
 
         Map<String, Object> body = new HashMap<>();
         body.put("paymentId", request.paymentId());
@@ -104,7 +104,7 @@ public class PaymentGatewayClient {
     public GatewayResult getStatus(String gateway, String gatewayPaymentId) {
         log.debug("Getting status: gateway={}, gatewayPaymentId={}", gateway, gatewayPaymentId);
 
-        String url = baseUrl + "/api/v1/gateway/" + gateway + "/status/" + gatewayPaymentId;
+        String url = baseUrl + "/v1/gateway/" + gateway + "/status/" + gatewayPaymentId;
 
         try {
             @SuppressWarnings("unchecked")
