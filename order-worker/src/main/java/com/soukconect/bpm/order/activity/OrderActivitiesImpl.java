@@ -136,8 +136,8 @@ public class OrderActivitiesImpl implements OrderActivities {
     }
 
     @Override
-    public void refundPayment(Long orderId, String transactionId) {
-        log.info("Refunding payment for order: {}, transactionId: {}", orderId, transactionId);
+    public void refundPayment(Long orderId, Long paymentId, String transactionId) {
+        log.info("Refunding payment for order: {}, paymentId: {}, transactionId: {}", orderId, paymentId, transactionId);
 
         try {
             var order = orderServiceClient.getOrder(orderId);
@@ -145,7 +145,7 @@ public class OrderActivitiesImpl implements OrderActivities {
                 // Find the payment and refund via gateway
                 String gateway = "STRIPE"; // Default - could be stored on order
                 PaymentGatewayClient.RefundRequest refundRequest = new PaymentGatewayClient.RefundRequest(
-                        null, // paymentId - we use gatewayPaymentId instead
+                        paymentId,
                         gateway,
                         transactionId,
                         order.totalAmount(),

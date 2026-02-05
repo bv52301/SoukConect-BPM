@@ -21,7 +21,7 @@ services:
   customer:
     url: http://127.0.0.1:8084/api
   payment:
-    url: http://127.0.0.1:8085/api
+    url: http://127.0.0.1:8083/api
 
 # Logging
 logging:

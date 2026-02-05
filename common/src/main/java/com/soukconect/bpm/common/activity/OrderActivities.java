@@ -37,7 +37,7 @@ public interface OrderActivities {
      * Refund payment (compensation).
      */
     @ActivityMethod
-    void refundPayment(Long orderId, String transactionId);
+    void refundPayment(Long orderId, Long paymentId, String transactionId);
 
     // ============== INVENTORY ==============
 

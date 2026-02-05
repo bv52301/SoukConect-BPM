@@ -192,7 +192,8 @@ public class OrderWorkflowImpl implements OrderWorkflow {
 
             paymentTransactionId = paymentResult.transactionId();
             Long finalOrderId = orderId;
-            saga.addCompensation(() -> paymentActivities.refundPayment(finalOrderId, paymentTransactionId));
+            Long finalPaymentId = paymentResult.paymentId();
+            saga.addCompensation(() -> paymentActivities.refundPayment(finalOrderId, finalPaymentId, paymentTransactionId));
             addTimelineEvent("PAYMENT_PROCESSED", "COMPLETED");
 
             checkCancellation();

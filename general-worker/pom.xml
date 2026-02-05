@@ -80,6 +80,7 @@
     </dependencies>
 
     <build>
+        <finalName>general-worker</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
@@ -89,6 +90,142 @@
                         <goals>
                             <goal>repackage</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Generate deploy dir + scripts; copy jar; zip deploy -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>prepare-deploy-dir-and-scripts</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <mkdir dir="${project.build.directory}/deploy/logs"/>
+                                <echo file="${project.build.directory}/deploy/start-general-worker.sh"><![CDATA[
+#!/usr/bin/env bash
+set -euo pipefail
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+JAR="${DIR}/general-worker.jar"
+PORT="${PORT:-8091}"
+TEMPORAL_ADDRESS="${TEMPORAL_ADDRESS:-localhost:7233}"
+JAVA_OPTS="${JAVA_OPTS:-}"
+mkdir -p "${DIR}/logs"
+TS="$(date +%Y%m%d-%H%M%S)"
+LOG_FILE="${DIR}/logs/general-worker.${TS}.log"
+nohup java ${JAVA_OPTS} -Dserver.port="${PORT}" -Dserver.address=0.0.0.0 -Dtemporal.server.address="${TEMPORAL_ADDRESS}" -jar "${JAR}" >"${LOG_FILE}" 2>&1 &
+echo $! > "${DIR}/app.pid"
+echo "Started general-worker on port ${PORT}, Temporal: ${TEMPORAL_ADDRESS}. Logs: ${LOG_FILE} (PID $(cat ${DIR}/app.pid))"
+]]></echo>
+                                <chmod file="${project.build.directory}/deploy/start-general-worker.sh" perm="755" failonerror="false"/>
+                                <echo file="${project.build.directory}/deploy/start-general-worker.bat"><![CDATA[
+@echo off
+setlocal
+set "DIR=%~dp0"
+set "JAR=%DIR%general-worker.jar"
+if "%PORT%"=="" set PORT=8091
+if "%TEMPORAL_ADDRESS%"=="" set TEMPORAL_ADDRESS=localhost:7233
+set "JAVA_OPTS=%JAVA_OPTS%"
+set "LOGDIR=%DIR%logs"
+if not exist "%LOGDIR%" mkdir "%LOGDIR%"
+for /f %%i in ('powershell -NoProfile -Command "(Get-Date -Format 'yyyyMMdd-HHmmss')"') do set TS=%%i
+set "LOGFILE=%LOGDIR%\general-worker.%TS%.log"
+powershell -NoProfile -Command ^
+  "$ErrorActionPreference='Stop';" ^
+  "$dir = (Get-Item -LiteralPath '%DIR%').FullName;" ^
+  "$jar = Join-Path $dir 'general-worker.jar';" ^
+  "$port = $env:PORT; if (-not $port) { $port = '8091' }" ^
+  "$temporal = $env:TEMPORAL_ADDRESS; if (-not $temporal) { $temporal = 'localhost:7233' }" ^
+  "$javaOpts = $env:JAVA_OPTS;" ^
+  "$args = @(); if ($javaOpts) { $args += $javaOpts -split ' ' }" ^
+  "$args += ('-Dserver.port=' + $port); $args += '-Dserver.address=0.0.0.0'; $args += ('-Dtemporal.server.address=' + $temporal); $args += '-jar'; $args += $jar;" ^
+  "$log = Join-Path $dir ('logs\\general-worker.' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.log');" ^
+  "$p = Start-Process -FilePath 'java' -ArgumentList $args -RedirectStandardOutput $log -RedirectStandardError $log -PassThru -WindowStyle Hidden;" ^
+  "$p.Id | Out-File -Encoding ascii (Join-Path $dir 'app.pid');" ^
+  "Write-Output ('Started general-worker PID ' + $p.Id + ' Port ' + $port + ' Temporal ' + $temporal + ' Logs ' + $log)"
+endlocal
+]]></echo>
+                                <echo file="${project.build.directory}/deploy/stop-general-worker.sh"><![CDATA[
+#!/usr/bin/env bash
+set -euo pipefail
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PID_FILE="$DIR/app.pid"
+JAR="$DIR/general-worker.jar"
+if [[ -f "$PID_FILE" ]]; then PID="$(cat "$PID_FILE")" || true; else PID=""; fi
+if [[ -n "${PID}" ]] && ps -p "$PID" >/dev/null 2>&1; then
+  kill "$PID" || true
+  for i in {1..20}; do ps -p "$PID" >/dev/null 2>&1 || break; sleep 0.5; done
+  ps -p "$PID" >/dev/null 2>&1 && kill -9 "$PID" || true
+  echo "Stopped PID $PID"
+else
+  echo "No PID file or process not running; trying by jar match"
+  pkill -f "$JAR" || true
+fi
+]]></echo>
+                                <chmod file="${project.build.directory}/deploy/stop-general-worker.sh" perm="755" failonerror="false"/>
+                                <echo file="${project.build.directory}/deploy/stop-general-worker.bat"><![CDATA[
+@echo off
+setlocal
+set "DIR=%~dp0"
+set "JAR=%DIR%general-worker.jar"
+set "PIDFILE=%DIR%app.pid"
+if exist "%PIDFILE%" (
+  for /f "usebackq delims=" %%p in ("%PIDFILE%") do set PID=%%p
+  if not "%PID%"=="" (
+    taskkill /PID %PID% /T >nul 2>&1
+    if errorlevel 1 taskkill /PID %PID% /T /F >nul 2>&1
+    echo Stopped PID %PID%
+    endlocal & exit /b 0
+  )
+)
+echo PID not found; attempting match by JAR
+powershell -NoProfile -Command ^
+  "$jar=[IO.Path]::GetFullPath('%JAR%');" ^
+  "$procs = Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like ('*' + $jar + '*') };" ^
+  "if ($procs) { $procs | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -PassThru | Out-Null } catch {} }; exit 0 } else { Write-Output 'No matching process found'; exit 1 }"
+endlocal
+]]></echo>
+                            </target>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-jar-into-deploy</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <copy file="${project.build.directory}/${project.build.finalName}.jar" todir="${project.build.directory}/deploy"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <id>zip-deploy</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/deploy.xml</descriptor>
+                            </descriptors>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
